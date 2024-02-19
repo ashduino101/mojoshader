@@ -10,6 +10,8 @@
 #ifndef _INCL_MOJOSHADER_H_
 #define _INCL_MOJOSHADER_H_
 
+#include <emscripten.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

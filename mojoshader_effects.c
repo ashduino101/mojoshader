@@ -951,7 +951,8 @@ MOJOSHADER_effect *MOJOSHADER_compileEffect(const unsigned char *buf,
     retval->ctx.f = f;
 
     if (len < 8)
-        goto parseEffect_unexpectedEOF;
+        {MOJOSHADER_deleteEffect(retval);
+    return &MOJOSHADER_unexpected_eof_effect;};
 
     /* Read in header magic, seek to initial offset */
     const uint8 *base = NULL;
@@ -977,13 +978,15 @@ MOJOSHADER_effect *MOJOSHADER_compileEffect(const unsigned char *buf,
         const uint32 offset = readui32(&ptr, &len);
         base = ptr;
         if (offset > len)
-            goto parseEffect_unexpectedEOF;
+            {MOJOSHADER_deleteEffect(retval);
+    return &MOJOSHADER_unexpected_eof_effect;};
         ptr += offset;
         len -= offset;
     } // else
 
     if (len < 16)
-        goto parseEffect_unexpectedEOF;
+        {MOJOSHADER_deleteEffect(retval);
+    return &MOJOSHADER_unexpected_eof_effect;};
 
     /* Parse structure counts */
     const uint32 numparams = readui32(&ptr, &len);
@@ -996,7 +999,8 @@ MOJOSHADER_effect *MOJOSHADER_compileEffect(const unsigned char *buf,
     const uint32 siz = sizeof (MOJOSHADER_effectObject) * numobjects;
     retval->objects = (MOJOSHADER_effectObject *) m(siz, d);
     if (retval->objects == NULL)
-        goto parseEffect_outOfMemory;
+        {MOJOSHADER_deleteEffect(retval);
+    return &MOJOSHADER_out_of_mem_effect;};
     memset(retval->objects, '\0', siz);
 
     /* Parse effect parameters */
@@ -1016,7 +1020,8 @@ MOJOSHADER_effect *MOJOSHADER_compileEffect(const unsigned char *buf,
     retval->current_pass = -1;
 
     if (len < 8)
-        goto parseEffect_unexpectedEOF;
+        {    MOJOSHADER_deleteEffect(retval);
+    return &MOJOSHADER_unexpected_eof_effect;};
 
     /* Parse object counts */
     const int numsmallobjects = readui32(&ptr, &len);
@@ -1024,7 +1029,8 @@ MOJOSHADER_effect *MOJOSHADER_compileEffect(const unsigned char *buf,
 
     errors = errorlist_create(m, f, d);
     if (errors == NULL)
-        goto parseEffect_outOfMemory;
+        {MOJOSHADER_deleteEffect(retval);
+    return &MOJOSHADER_out_of_mem_effect;};
 
     /* Parse "small" object table */
     readsmallobjects(numsmallobjects, &ptr, &len, retval,

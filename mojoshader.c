@@ -2293,6 +2293,7 @@ static void parse_constant_table(Context *ctx, const uint32 *tokens,
                                  const int setvariables, CtabData *ctab)
 {
     const uint32 id = SWAP32(tokens[1]);
+    uint32 i = 0;
     if (id != CTAB_ID)
         return;  // not the constant table.
 
@@ -2342,7 +2343,6 @@ static void parse_constant_table(Context *ctx, const uint32 *tokens,
     } // if
     ctab->symbol_count = constants;
 
-    uint32 i = 0;
     for (i = 0; i < constants; i++)
     {
         const uint8 *ptr = start + constantinfo + (i * CINFO_SIZE);

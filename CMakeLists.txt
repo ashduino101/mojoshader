@@ -272,6 +272,8 @@ IF(COMPILER_SUPPORT)
     TARGET_LINK_LIBRARIES(mojoshader-compiler mojoshader ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
 ENDIF(COMPILER_SUPPORT)
 
+ADD_EXECUTABLE(dxdisassemble dxdisassemble.c)
+
 # Unit tests...
 IF(COMPILER_SUPPORT)
     ADD_CUSTOM_TARGET(
