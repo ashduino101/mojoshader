@@ -258,8 +258,15 @@
       let profile = setCharPtr("hlsl");
       let buf = setDataPtr(arr);
       console.log('args:', buf, arr.length, profile);
-      let res = Module._do_parse(buf, arr.length, profile);
-      if (res !== 0) {
+      let parser = new Module.EffectParser();
+      let res = parser.parse(buf, arr.length, "hlsl");
+      if (res == 0) {
+        console.log(parser.num_shaders());
+        for (let i = 0; i < parser.num_shaders(); i++) {
+          console.log(parser.get_shader(i));
+        }
+
+        return;
         let r = new BinaryReader(Module.HEAPU8, 'little');
         r.seek(res);
 
@@ -502,6 +509,6 @@
   }
 
 </script>
-<script src="./dxdisassemble.js"></script>
+<script src="./mojoshader.js"></script>
 </body>
 </html>

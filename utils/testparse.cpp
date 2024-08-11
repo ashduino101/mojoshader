@@ -1,6 +1,3 @@
-//
-// Created by ashduino101 on 2/16/24.
-//
 /**
  * MojoShader; generate shader programs from bytecode of compiled
  *  Direct3D shaders.
@@ -14,9 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "mojoshader.h"
+#include "../mojoshader.h"
 #define __MOJOSHADER_INTERNAL__ 1
-#include "mojoshader_internal.h"
+#include "../mojoshader_internal.h"
 #ifdef MOJOSHADER_HAS_SPIRV_TOOLS
 #include "spirv-tools/libspirv.h"
 #endif
@@ -78,15 +75,15 @@ static void print_typeinfo(const MOJOSHADER_symbolTypeInfo *info,
                            unsigned int indent)
 {
     static const char *symclasses[] = {
-            "scalar", "vector", "row-major matrix",
-            "column-major matrix", "object", "struct"
+        "scalar", "vector", "row-major matrix",
+        "column-major matrix", "object", "struct"
     };
 
     static const char *symtypes[] = {
-            "void", "bool", "int", "float", "string", "texture",
-            "texture1d", "texture2d", "texture3d", "texturecube",
-            "sampler", "sampler1d", "sampler2d", "sampler3d",
-            "samplercube", "pixelshader", "vertexshader", "unsupported"
+        "void", "bool", "int", "float", "string", "texture",
+        "texture1d", "texture2d", "texture3d", "texturecube",
+        "sampler", "sampler1d", "sampler2d", "sampler3d",
+        "samplercube", "pixelshader", "vertexshader", "unsupported"
     };
 
     INDENT();
@@ -131,10 +128,10 @@ static void print_symbols(const MOJOSHADER_symbol *sym,
         for (i = 0; i < symbol_count; i++, sym++)
         {
             static const char *regsets[] = {
-                    "bool", "int4", "float4", "sampler"
+                "bool", "int4", "float4", "sampler"
             };
 
-            INDENT(); printf("    * %d: \"%s\"\n", i, sym->name);
+            INDENT(); printf("    * %d: \"%s\"\n", i, sym->name.c_str());
             INDENT(); printf("      register set %s\n", regsets[sym->register_set]);
             INDENT(); printf("      register index %u\n", sym->register_index);
             INDENT(); printf("      register count %u\n", sym->register_count);
@@ -222,10 +219,10 @@ static void print_preshader(const MOJOSHADER_preshader *preshader,
     int i, j;
 
     static const char *opcodestr[] = {
-            "nop", "mov", "neg", "rcp", "frc", "exp", "log", "rsq", "sin", "cos",
-            "asin", "acos", "atan", "min", "max", "lt", "ge", "add", "mul",
-            "atan2", "div", "cmp", "movc", "dot", "noise", "min", "max", "lt",
-            "ge", "add", "mul", "atan2", "div", "dot", "noise"
+        "nop", "mov", "neg", "rcp", "frc", "exp", "log", "rsq", "sin", "cos",
+        "asin", "acos", "atan", "min", "max", "lt", "ge", "add", "mul",
+        "atan2", "div", "cmp", "movc", "dot", "noise", "min", "max", "lt",
+        "ge", "add", "mul", "atan2", "div", "dot", "noise"
     };
 
     INDENT(); printf("PRESHADER:\n");
@@ -267,10 +264,10 @@ static void print_attrs(const char *category, const int count,
         for (i = 0; i < count; i++)
         {
             static const char *usagenames[] = {
-                    "<unknown>",
-                    "position", "blendweight", "blendindices", "normal",
-                    "psize", "texcoord", "tangent", "binormal", "tessfactor",
-                    "positiont", "color", "fog", "depth", "sample"
+                "<unknown>",
+                "position", "blendweight", "blendindices", "normal",
+                "psize", "texcoord", "tangent", "binormal", "tessfactor",
+                "positiont", "color", "fog", "depth", "sample"
             };
             const MOJOSHADER_attribute *a = &attributes[i];
             char numstr[16] = { 0 };
@@ -278,8 +275,8 @@ static void print_attrs(const char *category, const int count,
                 snprintf(numstr, sizeof (numstr), "%d", a->index);
             INDENT();
             printf("    * %s%s", usagenames[1 + (int) a->usage], numstr);
-            if (a->name != NULL)
-                printf(" (\"%s\")", a->name);
+            if (!a->name.empty())
+                printf(" (\"%s\")", a->name.c_str());
             printf("\n");
         } // for
     } // else
@@ -289,7 +286,7 @@ static void print_attrs(const char *category, const int count,
 static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                          unsigned int indent)
 {
-    INDENT(); printf("PROFILE: %s\n", pd->profile);
+    INDENT(); printf("PROFILE: %s\n", pd->profile.c_str());
     if (pd->error_count > 0)
     {
         int i;
@@ -298,8 +295,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
             const MOJOSHADER_error *err = &pd->errors[i];
             INDENT();
             printf("%s:%d: ERROR: %s\n",
-                   err->filename ? err->filename : fname,
-                   err->error_position, err->error);
+                   err->filename.empty() ? fname : err->filename.c_str(),
+                   err->error_position, err->error.c_str());
         } // for
     } // if
     else
@@ -307,8 +304,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
         INDENT(); printf("SHADER TYPE: %s\n", shader_type(pd->shader_type));
         INDENT(); printf("VERSION: %d.%d\n", pd->major_ver, pd->minor_ver);
         INDENT(); printf("INSTRUCTION COUNT: %d\n", (int) pd->instruction_count);
-        INDENT(); printf("MAIN FUNCTION: %s\n", pd->mainfn);
-        print_attrs("INPUTS", pd->attribute_count, pd->attributes, indent);
+        INDENT(); printf("MAIN FUNCTION: %s\n", pd->mainfn.c_str());
+        print_attrs("INPUTS", pd->input_count, pd->inputs, indent);
         print_attrs("OUTPUTS", pd->output_count, pd->outputs, indent);
 
         INDENT(); printf("CONSTANTS:");
@@ -327,12 +324,12 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                 if (c->type == MOJOSHADER_UNIFORM_FLOAT)
                 {
                     printf("%f %f %f %f", c->value.f[0], c->value.f[1],
-                           c->value.f[2], c->value.f[3]);
+                                          c->value.f[2], c->value.f[3]);
                 } // if
                 else if (c->type == MOJOSHADER_UNIFORM_INT)
                 {
                     printf("%d %d %d %d", c->value.i[0], c->value.i[1],
-                           c->value.i[2], c->value.i[3]);
+                                          c->value.i[2], c->value.i[3]);
                 } // else if
                 else if (c->type == MOJOSHADER_UNIFORM_BOOL)
                 {
@@ -370,8 +367,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                 INDENT();
                 printf("    * %d: %s%s%s%s", u->index, constant, arrayof,
                        arrayrange, typenames[(int) u->type]);
-                if (u->name != NULL)
-                    printf(" (\"%s\")", u->name);
+                if (!u->name.empty())
+                    printf(" (\"%s\")", u->name.c_str());
                 printf("\n");
             } // for
         } // else
@@ -389,8 +386,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                 const MOJOSHADER_sampler *s = &pd->samplers[i];
                 INDENT();
                 printf("    * %d: %s", s->index, typenames[(int) s->type]);
-                if (s->name != NULL)
-                    printf(" (\"%s\")", s->name);
+                if (!s->name.empty())
+                    printf(" (\"%s\")", s->name.c_str());
                 if (s->texbem)
                     printf(" [TEXBEM]");
                 printf("\n");
@@ -402,13 +399,13 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
         if (pd->preshader != NULL)
             print_preshader(pd->preshader, indent);
 
-        if (pd->output != NULL)
+        if (!pd->output.empty())
         {
             const char *output;
             int output_len;
             int i;
 
-            if (strcmp(pd->profile, "spirv") == 0)
+            if (strcmp(pd->profile.c_str(), "spirv") == 0)
             {
 #if SUPPORT_PROFILE_SPIRV && defined(MOJOSHADER_HAS_SPIRV_TOOLS)
                 int binary_len = pd->output_len - sizeof(SpirvPatchTable);
@@ -444,13 +441,13 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
 
                 // FIXME: we're currently just leaking this disassembly...
 #else
-                output = pd->output;
+                output = pd->output.c_str();
                 output_len = pd->output_len;
 #endif
             } // if
             else
             {
-                output = pd->output;
+                output = pd->output.c_str();
                 output_len = pd->output_len;
             } // else
 
@@ -471,6 +468,10 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
 
     printf("\n\n");
 } // print_shader
+
+
+#ifdef MOJOSHADER_EFFECT_SUPPORT
+
 
 static void print_value(const MOJOSHADER_effectValue *value,
                         const unsigned int indent)
@@ -629,8 +630,8 @@ static void print_effect(const char *fname, const MOJOSHADER_effect *effect,
             const MOJOSHADER_error *err = &effect->errors[i];
             INDENT();
             printf("%s:%d: ERROR: %s\n",
-                    err->filename ? err->filename : fname,
-                    err->error_position, err->error);
+                    err->filename.empty() ? fname : err->filename.c_str(),
+                    err->error_position, err->error.c_str());
         } // for
     } // if
     else
@@ -748,7 +749,7 @@ static void* MOJOSHADERCALL effect_compile_shader(
 
 static void MOJOSHADERCALL effect_delete_shader(const void *ctx, void *shader)
 {
-    MOJOSHADER_freeParseData((MOJOSHADER_parseData*) shader);
+//    MOJOSHADER_freeParseData((MOJOSHADER_parseData*) shader);
 } // effect_delete_shader
 
 
@@ -757,185 +758,117 @@ static MOJOSHADER_parseData* MOJOSHADERCALL effect_get_parse_data(void *shader)
     return (MOJOSHADER_parseData*) shader;
 } // effect_get_parse_data
 
-typedef struct Shader {
-    int length;
-    char *content;
-} Shader;
+
+#endif // MOJOSHADER_EFFECT_SUPPORT
 
 
-typedef struct ParseData {
-    int num_shaders;
-    Shader *shaders;
-} ParseData;
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-const void* EMSCRIPTEN_KEEPALIVE do_parse(const unsigned char *buf,
+static int do_parse(const char *fname, const unsigned char *buf,
                     const int len, const char *prof)
 {
-    // all of this is so stupid
-    if (((buf[0] == 0x01) && (buf[1] == 0x09) &&
-        (buf[2] == 0xFF) && (buf[3] == 0xFE)) ||
-        ((buf[0] == 0xCF) && (buf[1] == 0x0B) &&
-        (buf[2] == 0xF0) && (buf[3] == 0xBC))) {
+    int i;
+    int retval = 0;
+
+    // magic for an effects file (!!! FIXME: I _think_).
+    if ( ((buf[0] == 0x01) && (buf[1] == 0x09) &&
+          (buf[2] == 0xFF) && (buf[3] == 0xFE)) ||
+         ((buf[0] == 0xCF) && (buf[1] == 0x0B) &&
+          (buf[2] == 0xF0) && (buf[3] == 0xBC)) )
+    {
+#ifdef MOJOSHADER_EFFECT_SUPPORT
         const MOJOSHADER_effect *effect;
         const MOJOSHADER_effectShaderContext ctx =
-                {
-                        effect_compile_shader,
-                        NULL, /* Meh! */
-                        effect_delete_shader,
-                        effect_get_parse_data,
-                        /* Meh! */
-                        NULL,
-                        NULL,
-                        NULL,
-                        NULL
-                };
+        {
+            effect_compile_shader,
+            NULL, /* Meh! */
+            effect_delete_shader,
+            effect_get_parse_data,
+            /* Meh! */
+            NULL,
+            NULL,
+            NULL,
+            NULL
+        };
         effect_profile = prof;
         effect = MOJOSHADER_compileEffect(buf, len, NULL, 0, NULL, 0, &ctx);
-        int num_shaders = effect->object_count;
-        ParseData *data = malloc(sizeof(ParseData));
-        data->num_shaders = num_shaders;
-        for (int i = 0; i < effect->object_count; i++) {
-            data->shaders = (Shader*)malloc(sizeof(Shader));
-            data->shaders[i].content = NULL;
+        int error_count = effect->error_count;
+        for (i = 0; i < effect->object_count; i++)
+        {
             MOJOSHADER_effectObject *object = &effect->objects[i];
-            switch (object->type) {
+            switch (object->type)
+            {
                 case MOJOSHADER_SYMTYPE_VERTEXSHADER:
                 case MOJOSHADER_SYMTYPE_PIXELSHADER:
-                    if (!object->shader.is_preshader) {
+                    if (!object->shader.is_preshader)
+                    {
                         const MOJOSHADER_parseData *shader =
-                                ctx.getParseData(object->shader.shader);
-                        if (shader) {
-
-                            MOJOSHADER_parseData * pd = ((MOJOSHADER_parseData *) object->shader.shader);
-                            data->shaders[i].length = pd->output_len;
-//                            data->shaders[i].content = (char*)malloc(pd->output_len + 1);
-//                            memcpy(data->shaders[i].content, &pd->output, pd->output_len);
-                            EM_ASM({console.log($0)}, pd->output);
-                            data->shaders[i].content = pd->output;
-                        }
+                            ctx.getParseData(object->shader.shader);
+                        if (shader)
+                            error_count += shader->error_count;
                     } // if
                     break;
                 default:
                     break;
             }
         }
+        retval = (error_count == 0);
+        printf("EFFECT: %s\n", fname);
+        print_effect(fname, effect, 1);
+        MOJOSHADER_deleteEffect(effect);
+#else
+        printf("Is an effect, but effect support is disabled!\n");
+#endif
+    } // if
 
-        int data_len = 4;
-        for (int i = 0; i < data->num_shaders; i++) {
-            data_len += 4 + data->shaders[i].length;
-        }
-        EM_ASM({console.log($0)}, data_len);
+    else  // do it as a regular compiled shader.
+    {
+        const MOJOSHADER_parseData *pd;
+        pd = MOJOSHADER_parse(prof, NULL, buf, len, NULL, 0,
+                              NULL, 0, Malloc, Free, NULL);
+        retval = (pd->error_count == 0);
+        printf("SHADER: %s\n", fname);
+        print_shader(fname, pd, 1);
+//        MOJOSHADER_freeParseData(pd);
+    } // else
 
-        char *final = (char*)malloc(data_len);
-        int o = 0;
-        final[o++] = (data->num_shaders >> 0) & 0xff;
-        final[o++] = (data->num_shaders >> 8) & 0xff;
-        final[o++] = (data->num_shaders >> 16) & 0xff;
-        final[o++] = (data->num_shaders >> 24) & 0xff;
-        for (int s = 0; s < data->num_shaders; s++) {
-            Shader sh = data->shaders[s];
-            final[o++] = (sh.length >> 0) & 0xff;
-            final[o++] = (sh.length >> 8) & 0xff;
-            final[o++] = (sh.length >> 16) & 0xff;
-            final[o++] = (sh.length >> 24) & 0xff;
-//            memcpy(final + o, sh.content, sh.length);
-            for (int c = 0; c < sh.length; c++) {
-                EM_ASM({window.res = window.res ?? []; window.res.push($0)}, sh.content[c]);
-                final[o++] = sh.content[c];
-            }
-//            o += sh.length;
-        }
-//        memcpy(final, (char*)data->num_shaders, 4);
-
-//        printf("EFFECT: %s\n", fname);
-//        print_effect(fname, effect, 1);
-        return (void*)final;
-//        MOJOSHADER_deleteEffect(effect);
-    }
-    return NULL;
+    return retval;
 } // do_parse
 
 
-//EMSCRIPTEN_BINDINGS(EffectShader) {
-//    emscripten::value_object<MOJOSHADER_parseData>("ParseData")
-//            .field("error_count", &MOJOSHADER_parseData::error_count)
-//            .field("errors", &MOJOSHADER_parseData::errors)
-//            .field("profile", &MOJOSHADER_parseData::profile)
-//            .field("output", &MOJOSHADER_parseData::output)
-//            .field("output_len", &MOJOSHADER_parseData::output_len)
-//            .field("instruction_count", &MOJOSHADER_parseData::instruction_count)
-//            .field("shader_type", &MOJOSHADER_parseData::shader_type)
-//            .field("major_ver", &MOJOSHADER_parseData::major_ver)
-//            .field("minor_ver", &MOJOSHADER_parseData::minor_ver)
-//            .field("mainfn", &MOJOSHADER_parseData::mainfn)
-//            .field("uniform_count", &MOJOSHADER_parseData::uniform_count)
-//            .field("uniforms", &MOJOSHADER_parseData::uniforms)
-//            .field("constant_count", &MOJOSHADER_parseData::constant_count)
-//            .field("constants", &MOJOSHADER_parseData::constants)
-//            .field("sampler_count", &MOJOSHADER_parseData::sampler_count)
-//            .field("samplers", &MOJOSHADER_parseData::samplers)
-//            .field("attribute_count", &MOJOSHADER_parseData::attribute_count)
-//            .field("attributes", &MOJOSHADER_parseData::attributes)
-//            .field("output_count", &MOJOSHADER_parseData::output_count)
-//            .field("outputs", &MOJOSHADER_parseData::outputs)
-//            .field("swizzle_count", &MOJOSHADER_parseData::swizzle_count)
-//            .field("swizzles", &MOJOSHADER_parseData::swizzles)
-//            .field("symbol_count", &MOJOSHADER_parseData::symbol_count)
-//            .field("symbols", &MOJOSHADER_parseData::symbols)
-//            .field("preshader", &MOJOSHADER_parseData::preshader)
-//            .field("malloc", &MOJOSHADER_parseData::malloc)
-//            .field("free", &MOJOSHADER_parseData::free)
-//            .field("malloc_data", &MOJOSHADER_parseData::malloc_data);
-//
-//        emscripten::value_object<MOJOSHADER_error>("Error")
-//            .field("error", &MOJOSHADER_error::error)
-//            .field("filename", &MOJOSHADER_error::filename)
-//            .field("position", &MOJOSHADER_error::error_position);
-//
-//        emscripten::value_array<MOJOSHADER_error*>("ArrayError");
-//}
+int main(int argc, char **argv)
+{
+    int retval = 0;
 
-//
-//int main(int argc, char **argv)
-//{
-//    int retval = 0;
-//
-//    printf("MojoShader testparse\n");
-//    printf("Compiled against changeset %s\n", MOJOSHADER_CHANGESET);
-//    printf("Linked against changeset %s\n", MOJOSHADER_changeset());
-//    printf("\n");
-//
-//    if (argc <= 2)
-//        printf("\n\nUSAGE: %s <profile> [file1] ... [fileN]\n\n", argv[0]);
-//    else
-//    {
-//        const char *profile = argv[1];
-//        int i;
-//
-//        for (i = 2; i < argc; i++)
-//        {
-//            FILE *io = fopen(argv[i], "rb");
-//            if (io == NULL)
-//                printf(" ... fopen('%s') failed.\n", argv[i]);
-//            else
-//            {
-//                unsigned char *buf = (unsigned char *) malloc(1000000);
-//                int rc = fread(buf, 1, 1000000, io);
-//                fclose(io);
-//                if (!do_parse(argv[i], buf, rc, profile))
-//                    retval = 1;
-//                free(buf);
-//            } // else
-//        } // for
-//    } // else
-//
-//    return retval;
-//} // main
+    printf("MojoShader testparse\n");
+    printf("Compiled against changeset %s\n", MOJOSHADER_CHANGESET);
+    printf("Linked against changeset %s\n", MOJOSHADER_changeset());
+    printf("\n");
 
-#ifdef __cplusplus
-}
-#endif
+    if (argc <= 2)
+        printf("\n\nUSAGE: %s <profile> [file1] ... [fileN]\n\n", argv[0]);
+    else
+    {
+        const char *profile = argv[1];
+        int i;
+
+        for (i = 2; i < argc; i++)
+        {
+            FILE *io = fopen(argv[i], "rb");
+            if (io == NULL)
+                printf(" ... fopen('%s') failed.\n", argv[i]);
+            else
+            {
+                unsigned char *buf = (unsigned char *) malloc(1000000);
+                int rc = fread(buf, 1, 1000000, io);
+                fclose(io);
+                if (!do_parse(argv[i], buf, rc, profile))
+                    retval = 1;
+                free(buf);
+            } // else
+        } // for
+    } // else
+
+    return retval;
+} // main
+
+// end of testparse.c ...
+

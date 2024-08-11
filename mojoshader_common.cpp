@@ -19,13 +19,9 @@ void MOJOSHADERCALL MOJOSHADER_internal_free(void *ptr, void *d)
 #endif
 
 MOJOSHADER_error MOJOSHADER_out_of_mem_error = {
-    "Out of memory", NULL, MOJOSHADER_POSITION_NONE
-};
-
-MOJOSHADER_parseData MOJOSHADER_out_of_mem_data = {
-    1, &MOJOSHADER_out_of_mem_error, 0, 0, 0, 0,
-    MOJOSHADER_TYPE_UNKNOWN, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    std::string("Out of memory"),
+    std::string(""),
+    MOJOSHADER_POSITION_NONE
 };
 
 
@@ -246,7 +242,7 @@ int hash_remove(HashTable *table, const void *key, const void *ctx)
 // this is djb's xor hashing function.
 static inline uint32 hash_string_djbxor(const char *str, size_t len)
 {
-    register uint32 hash = 5381;
+    uint32 hash = 5381;
     while (len--)
         hash = ((hash << 5) + hash) ^ *(str++);
     return hash;
@@ -667,8 +663,8 @@ void errorlist_destroy(ErrorList *list)
     while (item != NULL)
     {
         ErrorItem *next = item->next;
-        f((void *) item->error.error, d);
-        f((void *) item->error.filename, d);
+//        f((void *) item->error.error, d);
+//        f((void *) item->error.filename, d);
         f(item, d);
         item = next;
     } // while

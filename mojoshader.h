@@ -10,7 +10,8 @@
 #ifndef _INCL_MOJOSHADER_H_
 #define _INCL_MOJOSHADER_H_
 
-#include <emscripten.h>
+#include <string>
+#include <vector>
 
 #ifdef __cplusplus
 extern "C" {
@@ -161,7 +162,7 @@ typedef struct MOJOSHADER_uniform
     int index;
     int array_count;
     int constant;
-    const char *name;
+    std::string name;
 } MOJOSHADER_uniform;
 
 /*
@@ -175,8 +176,15 @@ typedef struct MOJOSHADER_uniform
  *  before drawing with the shader.
  * (value) is the value of the constant, unioned by type.
  */
-typedef struct MOJOSHADER_constant
+class MOJOSHADER_constant
 {
+public:
+    MOJOSHADER_constant();
+
+    std::vector<float> get_float4();
+    std::vector<int> get_int4();
+    bool get_bool();
+
     MOJOSHADER_uniformType type;
     int index;
     union
@@ -185,7 +193,7 @@ typedef struct MOJOSHADER_constant
         int i[4];    /* if type==MOJOSHADER_UNIFORM_INT */
         int b;       /* if type==MOJOSHADER_UNIFORM_BOOL */
     } value;
-} MOJOSHADER_constant;
+};
 
 /*
  * Data types for samplers. See MOJOSHADER_sampler for more information.
@@ -217,7 +225,7 @@ typedef struct MOJOSHADER_sampler
 {
     MOJOSHADER_samplerType type;
     int index;
-    const char *name;
+    std::string name;
     int texbem;
 } MOJOSHADER_sampler;
 
@@ -274,7 +282,7 @@ typedef struct MOJOSHADER_attribute
 {
     MOJOSHADER_usage usage;
     int index;
-    const char *name;
+    std::string name;
 } MOJOSHADER_attribute;
 
 /*
@@ -365,7 +373,7 @@ struct MOJOSHADER_symbolStructMember
 
 typedef struct MOJOSHADER_symbol
 {
-    const char *name;
+    std::string name;
     MOJOSHADER_symbolRegisterSet register_set;
     unsigned int register_index;
     unsigned int register_count;
@@ -380,20 +388,20 @@ typedef struct MOJOSHADER_symbol
 #define MOJOSHADER_POSITION_BEFORE (-2)
 #define MOJOSHADER_POSITION_AFTER (-1)
 
-typedef struct MOJOSHADER_error
+struct MOJOSHADER_error
 {
     /*
      * Human-readable error, if there is one. Will be NULL if there was no
      *  error. The string will be UTF-8 encoded, and English only. Most of
      *  these shouldn't be shown to the end-user anyhow.
      */
-    const char *error;
+    std::string error;
 
     /*
      * Filename where error happened. This can be NULL if the information
      *  isn't available.
      */
-    const char *filename;
+    std::string filename;
 
     /*
      * Position of error, if there is one. Will be MOJOSHADER_POSITION_NONE if
@@ -406,7 +414,7 @@ typedef struct MOJOSHADER_error
      *  you supplied (starting at one).
      */
     int error_position;
-} MOJOSHADER_error;
+};
 
 
 /* !!! FIXME: document me. */
@@ -494,8 +502,23 @@ typedef struct MOJOSHADER_preshader
  * Structure used to return data from parsing of a shader...
  */
 /* !!! FIXME: most of these ints should be unsigned. */
-typedef struct MOJOSHADER_parseData
+class MOJOSHADER_parseData
 {
+public:
+    MOJOSHADER_parseData();
+
+    ~MOJOSHADER_parseData();
+
+    [[nodiscard]] MOJOSHADER_error get_error(int idx) const;
+    [[nodiscard]] MOJOSHADER_uniform get_uniform(int idx) const;
+    [[nodiscard]] MOJOSHADER_constant get_constant(int idx) const;
+    [[nodiscard]] MOJOSHADER_sampler get_sampler(int idx) const;
+    [[nodiscard]] MOJOSHADER_attribute get_input(int idx) const;
+    [[nodiscard]] MOJOSHADER_attribute get_output(int idx) const;
+    [[nodiscard]] MOJOSHADER_swizzle get_swizzle(int idx) const;
+    [[nodiscard]] MOJOSHADER_symbol get_symbol(int idx) const;
+    [[nodiscard]] MOJOSHADER_preshader get_preshader() const;
+
     /*
      * The number of elements pointed to by (errors).
      */
@@ -511,14 +534,14 @@ typedef struct MOJOSHADER_parseData
     /*
      * The name of the profile used to parse the shader. Will be NULL on error.
      */
-    const char *profile;
+    std::string profile;
 
     /*
      * Bytes of output from parsing. Most profiles produce a string of source
      *  code, but profiles that do binary output may not be text at all.
      *  Will be NULL on error.
      */
-    const char *output;
+    std::string output;
 
     /*
      * Byte count for output, not counting any null terminator. Most profiles
@@ -563,7 +586,7 @@ typedef struct MOJOSHADER_parseData
      *  Otherwise, it'll be a default name chosen by the profile ("main") or
      *  whatnot.
      */
-    const char *mainfn;
+    std::string mainfn;
 
     /*
      * The number of elements pointed to by (uniforms).
@@ -608,15 +631,14 @@ typedef struct MOJOSHADER_parseData
     /*
      * The number of elements pointed to by (attributes).
      */
-    int attribute_count;
+    int input_count;
 
-    /* !!! FIXME: this should probably be "input" and not "attribute" */
     /*
-     * (attribute_count) elements of data that specify Attributes to be set
+     * (input_count) elements of data that specify Attributes to be set
      *  for this shader. See discussion on MOJOSHADER_attribute for details.
-     * This can be NULL on error or if (attribute_count) is zero.
+     * This can be NULL on error or if (input_count) is zero.
      */
-    MOJOSHADER_attribute *attributes;
+    MOJOSHADER_attribute *inputs;
 
     /*
      * The number of elements pointed to by (outputs).
@@ -635,10 +657,9 @@ typedef struct MOJOSHADER_parseData
      */
     int swizzle_count;
 
-    /* !!! FIXME: this should probably be "input" and not "attribute" */
     /*
      * (swizzle_count) elements of data that specify swizzles the shader will
-     *  apply to incoming attributes. This is a copy of what was passed to
+     *  apply to incoming inputs. This is a copy of what was passed to
      *  MOJOSHADER_parseData().
      * This can be NULL on error or if (swizzle_count) is zero.
      */
@@ -678,7 +699,7 @@ typedef struct MOJOSHADER_parseData
      * This is the pointer you passed as opaque data for your allocator.
      */
     void *malloc_data;
-} MOJOSHADER_parseData;
+};
 
 
 /*

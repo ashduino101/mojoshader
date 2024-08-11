@@ -65,6 +65,7 @@ ELSE(NOT GIT)
         IF(NOT GITVERSION_RC EQUAL 0)
             SET(MOJOSHADER_CHANGESET "???")
         ELSE(NOT GITVERSION_RC EQUAL 0)
+	    STRING(REPLACE "\n" "\\n" MOJOSHADER_GIT_CHANGESET "${MOJOSHADER_GIT_CHANGESET}")
             SET(MOJOSHADER_CHANGESET "git-${MOJOSHADER_GIT_CHANGESET}")
         ENDIF(NOT GITVERSION_RC EQUAL 0)
     ENDIF(NOT GITVERSION_RC EQUAL 0)
@@ -169,32 +170,32 @@ IF(XNA4_VERTEXTEXTURE)
 ENDIF(XNA4_VERTEXTEXTURE)
 
 ADD_LIBRARY(mojoshader
-    mojoshader.c
-    mojoshader_common.c
-    mojoshader_opengl.c
-    mojoshader_metal.c
-    mojoshader_d3d11.c
-    mojoshader_vulkan.c
-    profiles/mojoshader_profile_arb1.c
-    profiles/mojoshader_profile_bytecode.c
-    profiles/mojoshader_profile_d3d.c
-    profiles/mojoshader_profile_hlsl.c
-    profiles/mojoshader_profile_glsl.c
-    profiles/mojoshader_profile_metal.c
-    profiles/mojoshader_profile_spirv.c
-    profiles/mojoshader_profile_common.c
+    mojoshader.cpp
+    mojoshader_common.cpp
+    mojoshader_opengl.cpp
+    mojoshader_metal.cpp
+    mojoshader_d3d11.cpp
+    mojoshader_vulkan.cpp
+    profiles/mojoshader_profile_arb1.cpp
+    profiles/mojoshader_profile_bytecode.cpp
+    profiles/mojoshader_profile_d3d.cpp
+    profiles/mojoshader_profile_hlsl.cpp
+    profiles/mojoshader_profile_glsl.cpp
+    profiles/mojoshader_profile_metal.cpp
+    profiles/mojoshader_profile_spirv.cpp
+    profiles/mojoshader_profile_common.cpp
 )
 IF(EFFECT_SUPPORT)
     TARGET_SOURCES(mojoshader PRIVATE
-        mojoshader_effects.c
+        mojoshader_effects.cpp
     )
 ENDIF(EFFECT_SUPPORT)
 IF(COMPILER_SUPPORT)
     TARGET_SOURCES(mojoshader PRIVATE
-        mojoshader_compiler.c
-        mojoshader_preprocessor.c
-        mojoshader_lexer.c
-        mojoshader_assembler.c
+        mojoshader_compiler.cpp
+        mojoshader_preprocessor.cpp
+        mojoshader_lexer.cpp
+        mojoshader_assembler.cpp
     )
 ENDIF(COMPILER_SUPPORT)
 IF(BUILD_SHARED_LIBS)
@@ -210,7 +211,7 @@ TARGET_INCLUDE_DIRECTORIES(mojoshader PUBLIC
 )
 
 SET_SOURCE_FILES_PROPERTIES(
-    mojoshader_compiler.c
+    mojoshader_compiler.cpp
     PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_parser_hlsl.h"
 )
 
@@ -220,32 +221,32 @@ IF(NOT RE2C)
 ELSE(NOT RE2C)
     MARK_AS_ADVANCED(RE2C)
     ADD_CUSTOM_COMMAND(
-        OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_lexer.c"
+        OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_lexer.cpp"
         DEPENDS mojoshader_lexer.re
         COMMAND "${RE2C}"
-        ARGS -is --no-generation-date -o "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_lexer.c" "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_lexer.re"
+        ARGS -is --no-generation-date -o "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_lexer.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/mojoshader_lexer.re"
     )
 ENDIF(NOT RE2C)
 
 find_package(SDL2)
 IF(SDL2_FOUND)
     INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIRS})
-    ADD_EXECUTABLE(glcaps utils/glcaps.c)
+    ADD_EXECUTABLE(glcaps utils/glcaps.cpp)
     TARGET_LINK_LIBRARIES(glcaps ${SDL2_LIBRARIES} ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
-    ADD_EXECUTABLE(bestprofile utils/bestprofile.c)
+    ADD_EXECUTABLE(bestprofile utils/bestprofile.cpp)
     TARGET_LINK_LIBRARIES(bestprofile mojoshader ${SDL2_LIBRARIES} ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
-    ADD_EXECUTABLE(availableprofiles utils/availableprofiles.c)
+    ADD_EXECUTABLE(availableprofiles utils/availableprofiles.cpp)
     TARGET_LINK_LIBRARIES(availableprofiles mojoshader ${SDL2_LIBRARIES} ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
-    ADD_EXECUTABLE(testglcompile utils/testglcompile.c)
+    ADD_EXECUTABLE(testglcompile utils/testglcompile.cpp)
     TARGET_LINK_LIBRARIES(testglcompile mojoshader ${SDL2_LIBRARIES} ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
 ENDIF(SDL2_FOUND)
 
 IF(COMPILER_SUPPORT)
-    ADD_EXECUTABLE(finderrors utils/finderrors.c)
+    ADD_EXECUTABLE(finderrors utils/finderrors.cpp)
     IF(SDL2_FOUND)
         TARGET_LINK_LIBRARIES(finderrors mojoshader ${SDL2_LIBRARIES} ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
         SET_SOURCE_FILES_PROPERTIES(
-            utils/finderrors.c
+                utils/finderrors.cpp
             PROPERTIES COMPILE_FLAGS "-DFINDERRORS_COMPILE_SHADERS=1"
         )
     ELSE(SDL2_FOUND)
@@ -260,19 +261,19 @@ IF(SPIRV_TOOLS_INCLUDE_DIR AND SPIRV_TOOLS_LIBRARY)
     ADD_DEFINITIONS(-DMOJOSHADER_HAS_SPIRV_TOOLS)
 ENDIF(SPIRV_TOOLS_INCLUDE_DIR AND SPIRV_TOOLS_LIBRARY)
 
-ADD_EXECUTABLE(testparse utils/testparse.c)
+ADD_EXECUTABLE(testparse utils/testparse.cpp)
 TARGET_LINK_LIBRARIES(testparse mojoshader ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
 IF(SPIRV_TOOLS_INCLUDE_DIR AND SPIRV_TOOLS_LIBRARY)
     TARGET_LINK_LIBRARIES(testparse ${SPIRV_TOOLS_LIBRARY})
 ENDIF(SPIRV_TOOLS_INCLUDE_DIR AND SPIRV_TOOLS_LIBRARY)
-ADD_EXECUTABLE(testoutput utils/testoutput.c)
+ADD_EXECUTABLE(testoutput utils/testoutput.cpp)
 TARGET_LINK_LIBRARIES(testoutput mojoshader ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
 IF(COMPILER_SUPPORT)
-    ADD_EXECUTABLE(mojoshader-compiler utils/mojoshader-compiler.c)
+    ADD_EXECUTABLE(mojoshader-compiler utils/mojoshader-compiler.cpp)
     TARGET_LINK_LIBRARIES(mojoshader-compiler mojoshader ${LIBM} ${LOBJC} ${CARBON_FRAMEWORK})
 ENDIF(COMPILER_SUPPORT)
 
-ADD_EXECUTABLE(dxdisassemble dxdisassemble.c)
+ADD_EXECUTABLE(mojoshader_wasm mojoshader_wasm.cpp)
 
 # Unit tests...
 IF(COMPILER_SUPPORT)

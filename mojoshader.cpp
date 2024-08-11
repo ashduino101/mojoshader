@@ -17,6 +17,8 @@
 
 #define __MOJOSHADER_INTERNAL__ 1
 #include "profiles/mojoshader_profile.h"
+#include "mojoshader.h"
+
 
 // Deal with register lists...  !!! FIXME: I sort of hate this.
 
@@ -1236,7 +1238,7 @@ static ConstantsList *alloc_constant_listitem(Context *ctx)
     if (item == NULL)
         return NULL;
 
-    memset(&item->constant, '\0', sizeof (MOJOSHADER_constant));
+    item->constant = *new MOJOSHADER_constant();
     item->next = ctx->constants;
     ctx->constants = item;
     ctx->constant_count++;
@@ -2445,9 +2447,6 @@ typedef struct PreshaderBlockInfo
 //  off to the GPU. As such, we do the same.
 static void parse_preshader(Context *ctx, const uint32 *tokens, uint32 tokcount)
 {
-#ifndef MOJOSHADER_EFFECT_SUPPORT
-    fail(ctx, "Preshader found, but effect support is disabled!");
-#else
     uint32 i;
 
     assert(ctx->have_preshader == 0);  // !!! FIXME: can you have more than one?
@@ -2822,7 +2821,6 @@ static void parse_preshader(Context *ctx, const uint32 *tokens, uint32 tokcount)
         memset(preshader->registers, '\0', len);
         preshader->register_count = largest;
     } // if
-#endif
 } // parse_preshader
 
 static int parse_comment_token(Context *ctx)
@@ -3048,7 +3046,7 @@ static void free_symbols(MOJOSHADER_free f, void *d, MOJOSHADER_symbol *syms,
     int i;
     for (i = 0; i < symcount; i++)
     {
-        f((void *) syms[i].name, d);
+//        f((void *) syms[i].name, d);
         free_sym_typeinfo(f, d, &syms[i].info);
     } // for
     f((void *) syms, d);
@@ -3108,6 +3106,105 @@ static inline const char *alloc_varname(Context *ctx, const RegisterList *reg)
     return ctx->profile->get_varname(ctx, reg->regtype, reg->regnum);
 } // alloc_varname
 
+
+MOJOSHADER_parseData::MOJOSHADER_parseData() {
+
+}
+
+MOJOSHADER_parseData::~MOJOSHADER_parseData() {
+    // FIXME: i don't write c++ usually, do we have to free the strings?
+    MOJOSHADER_free f = (this->free == nullptr) ? MOJOSHADER_internal_free : this->free;
+    void *d = this->malloc_data;
+    int i;
+
+    // we don't f(data->profile), because that's internal static data.
+
+//    f((void *) this->mainfn, d);
+//    f((void *) this->output, d);
+    f((void *) this->constants, d);
+    f((void *) this->swizzles, d);
+
+    for (i = 0; i < this->error_count; i++)
+    {
+//        f((void *) this->errors[i].error, d);
+//        f((void *) this->errors[i].filename, d);
+    } // for
+    f((void *) this->errors, d);
+
+//    for (i = 0; i < this->uniform_count; i++)
+//        f((void *) this->uniforms[i].name, d);
+    f((void *) this->uniforms, d);
+
+//    for (i = 0; i < this->input_count; i++)
+//        f((void *) this->inputs[i].name, d);
+    f((void *) this->inputs, d);
+
+//    for (i = 0; i < this->output_count; i++)
+//        f((void *) this->outputs[i].name, d);
+    f((void *) this->outputs, d);
+
+//    for (i = 0; i < this->sampler_count; i++)
+//        f((void *) this->samplers[i].name, d);
+    f((void *) this->samplers, d);
+
+    free_symbols(f, d, this->symbols, this->symbol_count);
+    MOJOSHADER_freePreshader(this->preshader);
+}
+
+MOJOSHADER_error MOJOSHADER_parseData::get_error(int idx) const {
+    return this->errors[idx];
+}
+
+MOJOSHADER_uniform MOJOSHADER_parseData::get_uniform(int idx) const {
+    return this->uniforms[idx];
+}
+
+MOJOSHADER_constant MOJOSHADER_parseData::get_constant(int idx) const {
+    return this->constants[idx];
+}
+
+MOJOSHADER_sampler MOJOSHADER_parseData::get_sampler(int idx) const {
+    return this->samplers[idx];
+}
+
+MOJOSHADER_attribute MOJOSHADER_parseData::get_input(int idx) const {
+    return this->inputs[idx];
+}
+
+MOJOSHADER_attribute MOJOSHADER_parseData::get_output(int idx) const {
+    return this->outputs[idx];
+}
+
+MOJOSHADER_swizzle MOJOSHADER_parseData::get_swizzle(int idx) const {
+    return this->swizzles[idx];
+}
+
+MOJOSHADER_symbol MOJOSHADER_parseData::get_symbol(int idx) const {
+    return this->symbols[idx];
+}
+
+
+MOJOSHADER_preshader MOJOSHADER_parseData::get_preshader() const {
+    return *this->preshader;
+}
+
+MOJOSHADER_constant::MOJOSHADER_constant() {
+
+}
+
+std::vector<float> MOJOSHADER_constant::get_float4() {
+    std::vector<float> v(this->value.f, this->value.f + sizeof(this->value.f) / sizeof(this->value.f[0]));
+    return v;
+}
+
+std::vector<int> MOJOSHADER_constant::get_int4() {
+    std::vector<int> v(this->value.i, this->value.i + sizeof(this->value.i) / sizeof(this->value.i[0]));
+    return v;
+}
+
+bool MOJOSHADER_constant::get_bool() {
+    return this->value.b;
+}
 
 // !!! FIXME: this code is sort of hard to follow:
 // !!! FIXME:  "var->used" only applies to arrays (at the moment, at least,
@@ -3388,19 +3485,16 @@ static MOJOSHADER_parseData *build_parsedata(Context *ctx)
     MOJOSHADER_sampler *samplers = NULL;
     MOJOSHADER_swizzle *swizzles = NULL;
     MOJOSHADER_error *errors = NULL;
-    MOJOSHADER_parseData *retval = NULL;
+    auto *retval = new MOJOSHADER_parseData();
     size_t output_len = 0;
     int attribute_count = 0;
     int output_count = 0;
 
     if (ctx->out_of_memory)
-        return &MOJOSHADER_out_of_mem_data;
+        return nullptr;
 
-    retval = (MOJOSHADER_parseData*) Malloc(ctx, sizeof(MOJOSHADER_parseData));
-    if (retval == NULL)
-        return &MOJOSHADER_out_of_mem_data;
-
-    memset(retval, '\0', sizeof (MOJOSHADER_parseData));
+    if (retval == nullptr)
+        return nullptr;
 
     if (!isfail(ctx))
         output = build_output(ctx, &output_len);
@@ -3445,29 +3539,29 @@ static MOJOSHADER_parseData *build_parsedata(Context *ctx)
 
         if (uniforms != NULL)
         {
-            for (i = 0; i < ctx->uniform_count; i++)
-                Free(ctx, (void *) uniforms[i].name);
+//            for (i = 0; i < ctx->uniform_count; i++)
+//                Free(ctx, (void *) uniforms[i].name);
             Free(ctx, uniforms);
         } // if
 
         if (attributes != NULL)
         {
-            for (i = 0; i < attribute_count; i++)
-                Free(ctx, (void *) attributes[i].name);
+//            for (i = 0; i < attribute_count; i++)
+//                Free(ctx, (void *) attributes[i].name);
             Free(ctx, attributes);
         } // if
 
         if (outputs != NULL)
         {
-            for (i = 0; i < output_count; i++)
-                Free(ctx, (void *) outputs[i].name);
+//            for (i = 0; i < output_count; i++)
+//                Free(ctx, (void *) outputs[i].name);
             Free(ctx, outputs);
         } // if
 
         if (samplers != NULL)
         {
-            for (i = 0; i < ctx->sampler_count; i++)
-                Free(ctx, (void *) samplers[i].name);
+//            for (i = 0; i < ctx->sampler_count; i++)
+//                Free(ctx, (void *) samplers[i].name);
             Free(ctx, samplers);
         } // if
 
@@ -3475,12 +3569,12 @@ static MOJOSHADER_parseData *build_parsedata(Context *ctx)
         {
             for (i = 0; i < error_count; i++)
             {
-                Free(ctx, (void *) errors[i].filename);
-                Free(ctx, (void *) errors[i].error);
+//                Free(ctx, (void *) errors[i].filename);
+//                Free(ctx, (void *) errors[i].error);
             } // for
             Free(ctx, errors);
             Free(ctx, retval);
-            return &MOJOSHADER_out_of_mem_data;
+            return nullptr;
         } // if
     } // if
     else
@@ -3498,8 +3592,8 @@ static MOJOSHADER_parseData *build_parsedata(Context *ctx)
         retval->constants = constants;
         retval->sampler_count = ctx->sampler_count;
         retval->samplers = samplers;
-        retval->attribute_count = attribute_count;
-        retval->attributes = attributes;
+        retval->input_count = attribute_count;
+        retval->inputs = attributes;
         retval->output_count = output_count;
         retval->outputs = outputs;
         retval->swizzle_count = ctx->swizzles_count;
@@ -3776,18 +3870,18 @@ const MOJOSHADER_parseData *MOJOSHADER_parse(const char *profile,
                                              MOJOSHADER_malloc m,
                                              MOJOSHADER_free f, void *d)
 {
-    MOJOSHADER_parseData *retval = NULL;
+    auto *retval = new MOJOSHADER_parseData();
     Context *ctx = NULL;
     int rc = 0;
     int failed = 0;
 
     if ( ((m == NULL) && (f != NULL)) || ((m != NULL) && (f == NULL)) )
-        return &MOJOSHADER_out_of_mem_data;  // supply both or neither.
+        return nullptr;  // supply both or neither.
 
     ctx = build_context(profile, mainfn, tokenbuf, bufsize, swiz, swizcount,
                         smap, smapcount, m, f, d);
     if (ctx == NULL)
-        return &MOJOSHADER_out_of_mem_data;
+        return nullptr;
 
     if (profile == NULL)  // build_context allows NULL; check this ourselves.
         fail(ctx, "Profile name is NULL");
@@ -3874,54 +3968,6 @@ const MOJOSHADER_parseData *MOJOSHADER_parse(const char *profile,
     return retval;
 } // MOJOSHADER_parse
 
-
-void MOJOSHADER_freeParseData(const MOJOSHADER_parseData *_data)
-{
-    MOJOSHADER_parseData *data = (MOJOSHADER_parseData *) _data;
-    if ((data == NULL) || (data == &MOJOSHADER_out_of_mem_data))
-        return;  // no-op.
-
-    MOJOSHADER_free f = (data->free == NULL) ? MOJOSHADER_internal_free : data->free;
-    void *d = data->malloc_data;
-    int i;
-
-    // we don't f(data->profile), because that's internal static data.
-
-    f((void *) data->mainfn, d);
-    f((void *) data->output, d);
-    f((void *) data->constants, d);
-    f((void *) data->swizzles, d);
-
-    for (i = 0; i < data->error_count; i++)
-    {
-        f((void *) data->errors[i].error, d);
-        f((void *) data->errors[i].filename, d);
-    } // for
-    f((void *) data->errors, d);
-
-    for (i = 0; i < data->uniform_count; i++)
-        f((void *) data->uniforms[i].name, d);
-    f((void *) data->uniforms, d);
-
-    for (i = 0; i < data->attribute_count; i++)
-        f((void *) data->attributes[i].name, d);
-    f((void *) data->attributes, d);
-
-    for (i = 0; i < data->output_count; i++)
-        f((void *) data->outputs[i].name, d);
-    f((void *) data->outputs, d);
-
-    for (i = 0; i < data->sampler_count; i++)
-        f((void *) data->samplers[i].name, d);
-    f((void *) data->samplers, d);
-
-    free_symbols(f, d, data->symbols, data->symbol_count);
-    MOJOSHADER_freePreshader(data->preshader);
-
-    f(data, d);
-} // MOJOSHADER_freeParseData
-
-
 int MOJOSHADER_version(void)
 {
     return MOJOSHADER_VERSION;
@@ -4003,4 +4049,3 @@ void MOJOSHADER_freePreshader(const MOJOSHADER_preshader *preshader)
 } // MOJOSHADER_freePreshader
 
 // end of mojoshader.c ...
-
