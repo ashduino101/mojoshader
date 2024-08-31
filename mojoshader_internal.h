@@ -126,6 +126,7 @@ typedef Uint64 uint64;
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 #endif /* MOJOSHADER_USE_SDL_STDLIB */
 
 #include "mojoshader.h"
