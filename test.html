@@ -219,14 +219,12 @@
 </script>
 <script>
   function setCharPtr(str) {
-    let mem = Module._malloc(str.length + 1);
     let dat = new TextEncoder().encode(str);
-    let i = 0;
-    for (let c of str) {
+    let mem = Module._malloc(dat.length + 1);
+    for (let i = 0; i < dat.length; i++) {
       Module.HEAP8[mem + i] = dat[i];
-      i++;
     }
-    Module.HEAP8[mem + i] = 0;
+    Module.HEAP8[mem + dat.length] = 0;
     return mem;
   }
   function setDataPtr(data) {
@@ -239,7 +237,7 @@
       return null;
     }
     let i = 0;
-    let b;
+    let b = 0xff;
     let r = '';
     while (b !== 0) {
       b = Module.HEAP8[ptr + i];
@@ -257,14 +255,10 @@
       let arr = new Uint8Array(r.result);
       let profile = setCharPtr("hlsl");
       let buf = setDataPtr(arr);
-      console.log('args:', buf, arr.length, profile);
-      let parser = new Module.EffectParser();
-      let res = parser.parse(buf, arr.length, "hlsl");
-      if (res == 0) {
-        console.log(parser.num_shaders());
-        for (let i = 0; i < parser.num_shaders(); i++) {
-          console.log(parser.get_shader(i));
-        }
+      console.log('args:', buf, arr.length, profile, out);
+      let res = Module._parse(buf, arr.length, profile);
+      if (res != 0) {
+        console.log(JSON.parse(getCharPtr(res)));
 
         return;
         let r = new BinaryReader(Module.HEAPU8, 'little');
@@ -498,8 +492,8 @@
         // };
         // console.log(effect);
         console.log(r.readUInt32());
-        console.log(r.read(r.readUInt32()));
-        console.log(r.read(r.readUInt32()));
+        // console.log(r.read(r.readUInt32()));
+        // console.log(r.read(r.readUInt32()));
         // console.log(r.read(128));
         // console.log(r.readArrayT(r.readUInt32.bind(r), r.readUInt32()));
         // saveBlob('heap.dat', r.data)
