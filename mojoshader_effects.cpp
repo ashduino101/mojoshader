@@ -7,6 +7,8 @@
  *  This file written by Ryan C. Gordon.
  */
 
+// FIXME: asserts don't work on wasm -- fix them
+
 #define __MOJOSHADER_INTERNAL__ 1
 #include "mojoshader_internal.h"
 
@@ -57,8 +59,8 @@ void MOJOSHADER_runPreshader(const MOJOSHADER_preshader *preshader,
         const int elemsbytes = sizeof (double) * elems;
         const int isscalarop = (inst->opcode >= scalarstart);
 
-        assert(elems >= 0);
-        assert(elems <= 4);
+        // assert(elems >= 0);
+        // assert(elems <= 4);
 
         // load up our operands...
         int opiter, elemiter;
@@ -72,7 +74,7 @@ void MOJOSHADER_runPreshader(const MOJOSHADER_preshader *preshader,
                 {
                     if (!isscalar)
                     {
-                        assert((index + elems) <= preshader->literal_count);
+                        // assert((index + elems) <= preshader->literal_count);
                         memcpy(&src[opiter][0], &preshader->literals[index], elemsbytes);
                     } // if
                     else
@@ -127,7 +129,7 @@ void MOJOSHADER_runPreshader(const MOJOSHADER_preshader *preshader,
                     break;
 
                 default:
-                    assert(0 && "unexpected preshader operand type.");
+                    // assert(0 && "unexpected preshader operand type.");
                     return;
             } // switch
         } // for
@@ -188,20 +190,20 @@ void MOJOSHADER_runPreshader(const MOJOSHADER_preshader *preshader,
             } // case
 
             default:
-                assert(0 && "Unhandled preshader opcode!");
+                // assert(0 && "Unhandled preshader opcode!");
                 break;
         } // switch
 
         // Figure out where dst wants to be stored.
         if (operand->type == MOJOSHADER_PRESHADEROPERAND_TEMP)
         {
-            assert(preshader->temp_count >=
-                    operand->index + (elemsbytes / sizeof (double)));
+            // assert(preshader->temp_count >=
+            //         operand->index + (elemsbytes / sizeof (double)));
             memcpy(temps + operand->index, dst, elemsbytes);
         } // if
         else
         {
-            assert(operand->type == MOJOSHADER_PRESHADEROPERAND_OUTPUT);
+            // assert(operand->type == MOJOSHADER_PRESHADEROPERAND_OUTPUT);
             for (i = 0; i < elems; i++)
                 outregs[operand->index + i] = (float) dst[i];
         } // else
@@ -276,7 +278,7 @@ static int findparameter(const MOJOSHADER_effectParam *params,
     for (i = 0; i < param_count; i++)
         if (strcmp(name, params[i].value.name) == 0)
             return i;
-    assert(0 && "Parameter not found!");
+    // assert(0 && "Parameter not found!");
     return -1;
 }
 
@@ -305,7 +307,7 @@ static void readvalue(const uint8 *base,
     value->type.elements = numelements;
 
     /* Class sanity check */
-    assert(valclass >= MOJOSHADER_SYMCLASS_SCALAR && valclass <= MOJOSHADER_SYMCLASS_STRUCT);
+    // assert(valclass >= MOJOSHADER_SYMCLASS_SCALAR && valclass <= MOJOSHADER_SYMCLASS_STRUCT);
 
     if (valclass == MOJOSHADER_SYMCLASS_SCALAR
      || valclass == MOJOSHADER_SYMCLASS_VECTOR
@@ -313,7 +315,7 @@ static void readvalue(const uint8 *base,
      || valclass == MOJOSHADER_SYMCLASS_MATRIX_COLUMNS)
     {
         /* These classes only ever contain scalar values */
-        assert(type >= MOJOSHADER_SYMTYPE_BOOL && type <= MOJOSHADER_SYMTYPE_FLOAT);
+        // assert(type >= MOJOSHADER_SYMTYPE_BOOL && type <= MOJOSHADER_SYMTYPE_FLOAT);
 
         const uint32 columncount = readui32(&typeptr, &typelen);
         const uint32 rowcount = readui32(&typeptr, &typelen);
@@ -335,7 +337,7 @@ static void readvalue(const uint8 *base,
     else if (valclass == MOJOSHADER_SYMCLASS_OBJECT)
     {
         /* This class contains either samplers or "objects" */
-        assert(type >= MOJOSHADER_SYMTYPE_STRING && type <= MOJOSHADER_SYMTYPE_VERTEXSHADER);
+        // assert(type >= MOJOSHADER_SYMTYPE_STRING && type <= MOJOSHADER_SYMTYPE_VERTEXSHADER);
 
         if (type == MOJOSHADER_SYMTYPE_SAMPLER
          || type == MOJOSHADER_SYMTYPE_SAMPLER1D
@@ -409,10 +411,10 @@ static void readvalue(const uint8 *base,
             mem->info.rows = readui32(&typeptr, &typelen);
 
             // !!! FIXME: Nested structs! -flibit
-            assert(mem->info.parameter_class >= MOJOSHADER_SYMCLASS_SCALAR
-                && mem->info.parameter_class <= MOJOSHADER_SYMCLASS_MATRIX_COLUMNS);
-            assert(mem->info.parameter_type >= MOJOSHADER_SYMTYPE_BOOL
-                && mem->info.parameter_type <= MOJOSHADER_SYMTYPE_FLOAT);
+//            assert(mem->info.parameter_class >= MOJOSHADER_SYMCLASS_SCALAR
+//                && mem->info.parameter_class <= MOJOSHADER_SYMCLASS_MATRIX_COLUMNS);
+//            assert(mem->info.parameter_type >= MOJOSHADER_SYMTYPE_BOOL
+//                && mem->info.parameter_type <= MOJOSHADER_SYMTYPE_FLOAT);
             mem->info.member_count = 0;
             mem->info.members = NULL;
 
@@ -735,7 +737,7 @@ static void readsmallobjects(const uint32 numsmallobjects,
         } // else if
         else
         {
-            assert(0 && "Small object type unknown!");
+            // assert(0 && "Small object type unknown!");
         } // else
 
         /* Object block is always a multiple of four */
@@ -891,7 +893,7 @@ static void readlargeobjects(const uint32 numlargeobjects,
         } // else if
         else if (object->type != MOJOSHADER_SYMTYPE_VOID) // FIXME: Why? -flibit
         {
-            assert(0 && "Large object type unknown!");
+            // assert(0 && "Large object type unknown!");
         } // else
 
         /* Object block is always a multiple of four */
@@ -1517,9 +1519,9 @@ MOJOSHADER_effect *MOJOSHADER_cloneEffect(const MOJOSHADER_effect *effect)
             clone->current_technique = &clone->techniques[i];
             break;
         } // if
-    assert(clone->current_technique != NULL);
+    // assert(clone->current_technique != NULL);
     clone->current_pass = effect->current_pass;
-    assert(clone->current_pass == -1);
+    // assert(clone->current_pass == -1);
 
     /* Copy object table */
     siz = sizeof (MOJOSHADER_effectObject) * effect->object_count;
@@ -1627,7 +1629,7 @@ void MOJOSHADER_effectSetRawValueName(const MOJOSHADER_effect *effect,
             return;
         } // if
     } // for
-    assert(0 && "Effect parameter not found!");
+    // assert(0 && "Effect parameter not found!");
 } // MOJOSHADER_effectSetRawValueName
 
 
@@ -1649,7 +1651,7 @@ void MOJOSHADER_effectSetTechnique(MOJOSHADER_effect *effect,
             return;
         } // if
     } // for
-    assert(0 && "Technique is not part of this effect!");
+    // assert(0 && "Technique is not part of this effect!");
 } // MOJOSHADER_effectSetTechnique
 
 
@@ -1669,7 +1671,7 @@ const MOJOSHADER_effectTechnique *MOJOSHADER_effectFindNextValidTechnique(const 
             return &effect->techniques[i + 1];
         } // if
     } // for
-    assert(0 && "Technique is not part of this effect!");
+    // assert(0 && "Technique is not part of this effect!");
     return NULL;
 } // MOJOSHADER_effectFindNextValidTechnique
 
@@ -1706,7 +1708,7 @@ void MOJOSHADER_effectBeginPass(MOJOSHADER_effect *effect,
                                 &effect->current_vert,
                                 &effect->current_pixl);
 
-    assert(effect->current_pass == -1);
+    // assert(effect->current_pass == -1);
     effect->current_pass = pass;
     curPass = &effect->current_technique->passes[pass];
 
@@ -1925,7 +1927,7 @@ void MOJOSHADER_effectCommitChanges(MOJOSHADER_effect *effect)
 
 void MOJOSHADER_effectEndPass(MOJOSHADER_effect *effect)
 {
-    assert(effect->current_pass != -1);
+    // assert(effect->current_pass != -1);
     effect->current_pass = -1;
 } // MOJOSHADER_effectEndPass
 
