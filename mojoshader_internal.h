@@ -9,9 +9,15 @@
 //  http://msdn.microsoft.com/en-us/library/ff569705.aspx
 
 #ifdef MOJOSHADER_USE_SDL_STDLIB
+#ifdef USE_SDL3 /* Private define, for now */
+#include <SDL3/SDL_assert.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_loadso.h>
+#else
 #include <SDL_assert.h>
 #include <SDL_stdinc.h>
 #include <SDL_loadso.h>
+#endif
 #include <math.h> /* Needed for isinf/isnan :( */
 
 /* FIXME: These includes are needed for alloca :( */
@@ -104,6 +110,12 @@ typedef Uint64 uint64;
 #endif
 /* TODO: Move MojoShader away from strcpy! This len is awful! */
 #define strcpy(dst, src) SDL_strlcpy(dst, src, SDL_strlen(src) + 1)
+
+/* ctype.h */
+#ifdef isalnum
+#undef isalnum
+#endif
+#define isalnum SDL_isalnum
 
 /* dlfcn.h */
 #define dlopen(a, b) SDL_LoadObject(a)
@@ -783,7 +795,8 @@ typedef struct SpirvPatchTable
 } SpirvPatchTable;
 
 void MOJOSHADER_spirv_link_attributes(const MOJOSHADER_parseData *vertex,
-                                      const MOJOSHADER_parseData *pixel);
+                                      const MOJOSHADER_parseData *pixel,
+                                      int is_glspirv);
 #endif
 
 #endif  // _INCLUDE_MOJOSHADER_INTERNAL_H_
