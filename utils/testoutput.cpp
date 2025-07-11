@@ -40,7 +40,6 @@ static int do_parse(const unsigned char *buf, const int len, const char *prof)
         } // if
     } // else
     printf("\n\n");
-    MOJOSHADER_freeParseData(pd);
 
     return retval;
 } // do_parse
