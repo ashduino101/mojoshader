@@ -5,8 +5,8 @@ mojoshader_effects.cpp mojoshader_wasm.cpp \
 -ferror-limit=400 \
 -DSUPPORT_PROFILE_D3D=0 -DSUPPORT_PROFILE_SPIRV=0 -DSUPPORT_PROFILE_GLSPIRV=0 -DMOJOSHADER_EFFECT_SUPPORT \
 -s "EXPORTED_RUNTIME_METHODS=ccall,cwrap,UTF8ToString,stringToUTF8" \
--s "EXPORTED_FUNCTIONS=_malloc,_free" \
---no-entry -O2 \
+-s "EXPORTED_FUNCTIONS=_malloc,_free,_parse" \
+--no-entry -Oz \
 -lembind --bind \
 -s ALLOW_MEMORY_GROWTH=1 \
 -s EXPORT_NAME=MojoShader \
