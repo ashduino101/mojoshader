@@ -131,7 +131,7 @@ static void print_symbols(const MOJOSHADER_symbol *sym,
                 "bool", "int4", "float4", "sampler"
             };
 
-            INDENT(); printf("    * %d: \"%s\"\n", i, sym->name);
+            INDENT(); printf("    * %d: \"%s\"\n", i, sym->name.c_str());
             INDENT(); printf("      register set %s\n", regsets[sym->register_set]);
             INDENT(); printf("      register index %u\n", sym->register_index);
             INDENT(); printf("      register count %u\n", sym->register_count);
@@ -275,8 +275,8 @@ static void print_attrs(const char *category, const int count,
                 snprintf(numstr, sizeof (numstr), "%d", a->index);
             INDENT();
             printf("    * %s%s", usagenames[1 + (int) a->usage], numstr);
-            if (a->name != NULL)
-                printf(" (\"%s\")", a->name);
+            if (!a->name.empty())
+                printf(" (\"%s\")", a->name.c_str());
             printf("\n");
         } // for
     } // else
@@ -286,7 +286,7 @@ static void print_attrs(const char *category, const int count,
 static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                          unsigned int indent)
 {
-    INDENT(); printf("PROFILE: %s\n", pd->profile);
+    INDENT(); printf("PROFILE: %s\n", pd->profile.c_str());
     if (pd->error_count > 0)
     {
         int i;
@@ -295,8 +295,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
             const MOJOSHADER_error *err = &pd->errors[i];
             INDENT();
             printf("%s:%d: ERROR: %s\n",
-                   err->filename ? err->filename : fname,
-                   err->error_position, err->error);
+                   err->filename.empty() ? fname : err->filename.c_str(),
+                   err->error_position, err->error.c_str());
         } // for
     } // if
     else
@@ -304,8 +304,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
         INDENT(); printf("SHADER TYPE: %s\n", shader_type(pd->shader_type));
         INDENT(); printf("VERSION: %d.%d\n", pd->major_ver, pd->minor_ver);
         INDENT(); printf("INSTRUCTION COUNT: %d\n", (int) pd->instruction_count);
-        INDENT(); printf("MAIN FUNCTION: %s\n", pd->mainfn);
-        print_attrs("INPUTS", pd->attribute_count, pd->attributes, indent);
+        INDENT(); printf("MAIN FUNCTION: %s\n", pd->mainfn.c_str());
+        print_attrs("INPUTS", pd->input_count, pd->inputs, indent);
         print_attrs("OUTPUTS", pd->output_count, pd->outputs, indent);
 
         INDENT(); printf("CONSTANTS:");
@@ -367,8 +367,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                 INDENT();
                 printf("    * %d: %s%s%s%s", u->index, constant, arrayof,
                        arrayrange, typenames[(int) u->type]);
-                if (u->name != NULL)
-                    printf(" (\"%s\")", u->name);
+                if (!u->name.empty())
+                    printf(" (\"%s\")", u->name.c_str());
                 printf("\n");
             } // for
         } // else
@@ -386,8 +386,8 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
                 const MOJOSHADER_sampler *s = &pd->samplers[i];
                 INDENT();
                 printf("    * %d: %s", s->index, typenames[(int) s->type]);
-                if (s->name != NULL)
-                    printf(" (\"%s\")", s->name);
+                if (!s->name.empty())
+                    printf(" (\"%s\")", s->name.c_str());
                 if (s->texbem)
                     printf(" [TEXBEM]");
                 printf("\n");
@@ -399,13 +399,13 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
         if (pd->preshader != NULL)
             print_preshader(pd->preshader, indent);
 
-        if (pd->output != NULL)
+        if (!pd->output.empty())
         {
             const char *output;
             int output_len;
             int i;
 
-            if (strcmp(pd->profile, "spirv") == 0)
+            if (strcmp(pd->profile.c_str(), "spirv") == 0)
             {
 #if SUPPORT_PROFILE_SPIRV && defined(MOJOSHADER_HAS_SPIRV_TOOLS)
                 int binary_len = pd->output_len - sizeof(SpirvPatchTable);
@@ -441,13 +441,13 @@ static void print_shader(const char *fname, const MOJOSHADER_parseData *pd,
 
                 // FIXME: we're currently just leaking this disassembly...
 #else
-                output = pd->output;
+                output = pd->output.c_str();
                 output_len = pd->output_len;
 #endif
             } // if
             else
             {
-                output = pd->output;
+                output = pd->output.c_str();
                 output_len = pd->output_len;
             } // else
 
@@ -630,8 +630,8 @@ static void print_effect(const char *fname, const MOJOSHADER_effect *effect,
             const MOJOSHADER_error *err = &effect->errors[i];
             INDENT();
             printf("%s:%d: ERROR: %s\n",
-                    err->filename ? err->filename : fname,
-                    err->error_position, err->error);
+                    err->filename.empty() ? fname : err->filename.c_str(),
+                    err->error_position, err->error.c_str());
         } // for
     } // if
     else
@@ -749,7 +749,7 @@ static void* MOJOSHADERCALL effect_compile_shader(
 
 static void MOJOSHADERCALL effect_delete_shader(const void *ctx, void *shader)
 {
-    MOJOSHADER_freeParseData((MOJOSHADER_parseData*) shader);
+//    MOJOSHADER_freeParseData((MOJOSHADER_parseData*) shader);
 } // effect_delete_shader
 
 
@@ -827,7 +827,7 @@ static int do_parse(const char *fname, const unsigned char *buf,
         retval = (pd->error_count == 0);
         printf("SHADER: %s\n", fname);
         print_shader(fname, pd, 1);
-        MOJOSHADER_freeParseData(pd);
+//        MOJOSHADER_freeParseData(pd);
     } // else
 
     return retval;

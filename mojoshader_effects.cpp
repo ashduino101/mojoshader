@@ -10,10 +10,8 @@
 #define __MOJOSHADER_INTERNAL__ 1
 #include "mojoshader_internal.h"
 
-#ifdef MOJOSHADER_EFFECT_SUPPORT
-
 #ifndef MOJOSHADER_USE_SDL_STDLIB
-#include <math.h>
+#include <cmath>
 #endif /* MOJOSHADER_USE_SDL_STDLIB */
 
 void MOJOSHADER_runPreshader(const MOJOSHADER_preshader *preshader,
@@ -214,19 +212,19 @@ static MOJOSHADER_effect MOJOSHADER_out_of_mem_effect = {
     1, &MOJOSHADER_out_of_mem_error, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 static MOJOSHADER_error MOJOSHADER_need_a_backend_error = {
-    "Need a MOJOSHADER_effectShaderContext", NULL, MOJOSHADER_POSITION_NONE
+    "Need a MOJOSHADER_effectShaderContext", "", MOJOSHADER_POSITION_NONE
 };
 static MOJOSHADER_effect MOJOSHADER_need_a_backend_effect = {
     1, &MOJOSHADER_need_a_backend_error, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 static MOJOSHADER_error MOJOSHADER_unexpected_eof_error = {
-    "Unexpected EOF", NULL, MOJOSHADER_POSITION_NONE
+    "Unexpected EOF", "", MOJOSHADER_POSITION_NONE
 };
 static MOJOSHADER_effect MOJOSHADER_unexpected_eof_effect = {
     1, &MOJOSHADER_unexpected_eof_error, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 static MOJOSHADER_error MOJOSHADER_not_an_effect_error = {
-    "Not an Effects Framework binary", NULL, MOJOSHADER_POSITION_NONE
+    "Not an Effects Framework binary", "", MOJOSHADER_POSITION_NONE
 };
 static MOJOSHADER_effect MOJOSHADER_not_an_effect_effect = {
     1, &MOJOSHADER_not_an_effect_error, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -236,7 +234,7 @@ static void push_errors(ErrorList *list, MOJOSHADER_error *errors, int len)
 {
     int i;
     for (i = 0; i < len; i += 1)
-        errorlist_add(list, errors[i].filename, errors[i].error_position, errors[i].error);
+        errorlist_add(list, errors[i].filename.c_str(), errors[i].error_position, errors[i].error.c_str());
 } // push_errors
 
 static uint32 readui32(const uint8 **_ptr, uint32 *_len)
@@ -712,7 +710,7 @@ static void readsmallobjects(const uint32 numsmallobjects,
             {
                 int par = findparameter(effect->params,
                                         effect->param_count,
-                                        pd->symbols[j].name);
+                                        pd->symbols[j].name.c_str());
                 object->shader.params[j] = par;
                 if (pd->symbols[j].register_set == MOJOSHADER_SYMREGSET_SAMPLER)
                 {
@@ -731,7 +729,7 @@ static void readsmallobjects(const uint32 numsmallobjects,
                 {
                     object->shader.preshader_params[j] = findparameter(effect->params,
                                                                        effect->param_count,
-                                                                       pd->preshader->symbols[j].name);
+                                                                       pd->preshader->symbols[j].name.c_str());
                 } // for
             } // if
         } // else if
@@ -813,7 +811,7 @@ static void readlargeobjects(const uint32 numlargeobjects,
                 {
                     object->shader.preshader_params[j] = findparameter(effect->params,
                                                                        effect->param_count,
-                                                                       object->shader.preshader->symbols[j].name);
+                                                                       object->shader.preshader->symbols[j].name.c_str());
                 } // for
             } // if
             else
@@ -849,7 +847,7 @@ static void readlargeobjects(const uint32 numlargeobjects,
                 {
                     int par = findparameter(effect->params,
                                             effect->param_count,
-                                            pd->symbols[j].name);
+                                            pd->symbols[j].name.c_str());
                     object->shader.params[j] = par;
                     if (pd->symbols[j].register_set == MOJOSHADER_SYMREGSET_SAMPLER)
                     {
@@ -868,7 +866,7 @@ static void readlargeobjects(const uint32 numlargeobjects,
                     {
                         object->shader.preshader_params[j] = findparameter(effect->params,
                                                                            effect->param_count,
-                                                                           pd->preshader->symbols[j].name);
+                                                                           pd->preshader->symbols[j].name.c_str());
                     } // for
                 } // if
             }
@@ -1100,8 +1098,8 @@ void MOJOSHADER_deleteEffect(const MOJOSHADER_effect *_effect)
     /* Free errors */
     for (i = 0; i < effect->error_count; i++)
     {
-        f((void *) effect->errors[i].error, d);
-        f((void *) effect->errors[i].filename, d);
+//        f((void *) effect->errors[i].error, d);
+//        f((void *) effect->errors[i].filename, d);
     } // for
     f((void *) effect->errors, d);
 
@@ -1312,10 +1310,10 @@ void copysymbol(MOJOSHADER_symbol *dst,
                 MOJOSHADER_malloc m,
                 void *d)
 {
-    uint32 siz = strlen(src->name) + 1;
+    uint32 siz = strlen(src->name.c_str()) + 1;
     char *stringcopy = (char *) m(siz, d);
     // !!! FIXME: Out of memory check!
-    strcpy(stringcopy, src->name);
+    strcpy(stringcopy, src->name.c_str());
     dst->name = stringcopy;
     dst->register_set = src->register_set;
     dst->register_index = src->register_index;
@@ -1418,8 +1416,10 @@ MOJOSHADER_effect *MOJOSHADER_cloneEffect(const MOJOSHADER_effect *effect)
     memset(clone->errors, '\0', siz);
     for (i = 0; i < clone->error_count; i++)
     {
-        COPY_STRING(errors[i].error)
-        COPY_STRING(errors[i].filename)
+//        COPY_STRING(errors[i].error)
+//        COPY_STRING(errors[i].filename)
+        clone->errors[i].error = effect->errors[i].error;
+        clone->errors[i].filename = effect->errors[i].filename;
         clone->errors[i].error_position = effect->errors[i].error_position;
     } // for
 
@@ -1942,8 +1942,6 @@ void MOJOSHADER_effectEnd(MOJOSHADER_effect *effect)
 
     effect->state_changes = NULL;
 } // MOJOSHADER_effectEnd
-
-#endif // MOJOSHADER_EFFECT_SUPPORT
 
 // end of mojoshader_effects.c ...
 

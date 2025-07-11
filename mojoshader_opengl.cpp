@@ -753,23 +753,23 @@ static inline GLint glsl_uniform_loc(MOJOSHADER_glProgram *program,
 static GLint impl_GLSL_GetSamplerLocation(MOJOSHADER_glProgram *program,
                                           MOJOSHADER_glShader *shader, int idx)
 {
-    return glsl_uniform_loc(program, shader->parseData->samplers[idx].name);
+    return glsl_uniform_loc(program, shader->parseData->samplers[idx].name.c_str());
 } // impl_GLSL_GetSamplerLocation
 
 
 static GLint impl_GLSL_GetAttribLocation(MOJOSHADER_glProgram *program, int idx)
 {
     const MOJOSHADER_parseData *pd = program->vertex->parseData;
-    const MOJOSHADER_attribute *a = pd->attributes;
+    const MOJOSHADER_attribute *a = pd->inputs;
 
     if (ctx->have_opengl_2)
     {
         return ctx->glGetAttribLocation(program->handle,
-                                        (const GLchar *) a[idx].name);
+                                        (const GLchar *) a[idx].name.c_str());
     } // if
 
     return ctx->glGetAttribLocationARB((GLhandleARB) program->handle,
-                                        (const GLcharARB *) a[idx].name);
+                                        (const GLcharARB *) a[idx].name.c_str());
 } // impl_GLSL_GetAttribLocation
 
 
@@ -854,7 +854,7 @@ static void impl_GLSL_PushConstantArray(MOJOSHADER_glProgram *program,
                                         const MOJOSHADER_uniform *u,
                                         const GLfloat *f)
 {
-    const GLint loc = glsl_uniform_loc(program, u->name);
+    const GLint loc = glsl_uniform_loc(program, u->name.c_str());
     if (loc >= 0)   // not optimized out?
         ctx->glUniform4fv(loc, u->array_count, f);
 } // impl_GLSL_PushConstantArray
@@ -955,7 +955,7 @@ static int impl_ARB1_CompileShader(const MOJOSHADER_parseData *pd, GLuint *s)
     ctx->glGetError();  // flush any existing error state.
     ctx->glBindProgramARB(shader_type, shader);
     ctx->glProgramStringARB(shader_type, GL_PROGRAM_FORMAT_ASCII_ARB,
-                                shaderlen, pd->output);
+                                shaderlen, pd->output.c_str());
 
     if (ctx->glGetError() == GL_INVALID_OPERATION)
     {
@@ -1899,7 +1899,7 @@ MOJOSHADER_glShader *MOJOSHADER_glCompileShader(const unsigned char *tokenbuf,
     {
         // !!! FIXME: put multiple errors in the buffer? Don't use
         // !!! FIXME:  MOJOSHADER_glGetError() for this?
-        set_error(pd->errors[0].error);
+        set_error(pd->errors[0].error.c_str());
         goto compile_shader_fail;
     } // if
 
@@ -1916,11 +1916,10 @@ MOJOSHADER_glShader *MOJOSHADER_glCompileShader(const unsigned char *tokenbuf,
     return retval;
 
 compile_shader_fail:
-    MOJOSHADER_freeParseData(pd);
     Free(retval);
     if (shader != 0)
         ctx->profileDeleteShader(shader);
-    return NULL;
+    return nullptr;
 } // MOJOSHADER_glCompileShader
 
 
@@ -1948,7 +1947,6 @@ static void shader_unref(MOJOSHADER_glShader *shader)
         else
         {
             ctx->profileDeleteShader(shader->handle);
-            MOJOSHADER_freeParseData(shader->parseData);
             Free(shader);
         } // else
     } // if
@@ -2159,9 +2157,9 @@ static int lookup_attributes(MOJOSHADER_glProgram *program)
 {
     int i;
     const MOJOSHADER_parseData *pd = program->vertex->parseData;
-    const MOJOSHADER_attribute *a = pd->attributes;
+    const MOJOSHADER_attribute *a = pd->inputs;
 
-    for (i = 0; i < pd->attribute_count; i++)
+    for (i = 0; i < pd->input_count; i++)
     {
         const GLint loc = ctx->profileGetAttribLocation(program, i);
         if (loc >= 0)  // maybe the Attribute was optimized out?
@@ -2252,9 +2250,9 @@ MOJOSHADER_glProgram *MOJOSHADER_glLinkProgram(MOJOSHADER_glShader *vshader,
 
     if (vshader != NULL)
     {
-        if (vshader->parseData->attribute_count > 0)
+        if (vshader->parseData->input_count > 0)
         {
-            const int count = vshader->parseData->attribute_count;
+            const int count = vshader->parseData->input_count;
             const size_t len = sizeof (AttributeMap) * count;
             retval->attributes = (AttributeMap *) Malloc(len);
             if (retval->attributes == NULL)
