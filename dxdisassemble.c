@@ -809,12 +809,10 @@ const void* EMSCRIPTEN_KEEPALIVE do_parse(const unsigned char *buf,
                         const MOJOSHADER_parseData *shader =
                                 ctx.getParseData(object->shader.shader);
                         if (shader) {
-
                             MOJOSHADER_parseData * pd = ((MOJOSHADER_parseData *) object->shader.shader);
                             data->shaders[i].length = pd->output_len;
 //                            data->shaders[i].content = (char*)malloc(pd->output_len + 1);
 //                            memcpy(data->shaders[i].content, &pd->output, pd->output_len);
-                            EM_ASM({console.log($0)}, pd->output);
                             data->shaders[i].content = pd->output;
                         }
                     } // if
