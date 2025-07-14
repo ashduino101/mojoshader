@@ -380,6 +380,7 @@ json serialize_value(const MOJOSHADER_effectValue *value) {
                 /* int/enum types */
                 val["value"] = *state->value.valuesI;
             }
+            vj["values"].push_back(val);
         }
     } else {
         i = 0;
